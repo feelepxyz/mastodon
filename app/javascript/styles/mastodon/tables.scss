@@ -127,6 +127,26 @@ a.table-action-link {
 }
 
 .batch-table {
+  &__footer a {
+    display: flex;
+    color: $secondary-text-color;
+    text-decoration: none;
+    border: 1px solid darken($ui-base-color, 8%);
+    border-top: 0;
+    background: $ui-base-color;
+    border-radius: 0 0 4px;
+    height: 47px;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+
+    &:hover,
+    &:focus,
+    &:active {
+      background-color: lighten($ui-base-color, 4%);
+    }
+  }
+
   &__toolbar,
   &__row {
     display: flex;

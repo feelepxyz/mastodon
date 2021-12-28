@@ -4,7 +4,7 @@ module Admin
   class StatusesController < BaseController
     helper_method :current_params
 
-    before_action :set_account
+    before_action :set_account, except: :create
 
     PER_PAGE = 20
 
@@ -18,7 +18,7 @@ module Admin
       end
 
       @statuses = @statuses.preload(:media_attachments, :mentions).page(params[:page]).per(PER_PAGE)
-      @form     = Form::StatusBatch.new
+      @status_batch_action = Admin::StatusBatchAction.new
     end
 
     def show
@@ -27,26 +27,30 @@ module Admin
       @statuses = @account.statuses.where(id: params[:id])
       authorize @statuses.first, :show?
 
-      @form = Form::StatusBatch.new
+      @status_batch_action = Admin::StatusBatchAction.new
     end
 
     def create
-      authorize :status, :update?
-
-      @form         = Form::StatusBatch.new(form_status_batch_params.merge(current_account: current_account, action: action_from_button))
-      flash[:alert] = I18n.t('admin.statuses.failed_to_execute') unless @form.save
-
-      redirect_to admin_account_statuses_path(@account.id, current_params)
+      @status_batch_action = Admin::StatusBatchAction.new(admin_status_batch_action_params.merge(current_account: current_account, report_id: params[:report_id], type: action_from_button))
+      @status_batch_action.save!
     rescue ActionController::ParameterMissing
       flash[:alert] = I18n.t('admin.statuses.no_status_selected')
-
-      redirect_to admin_account_statuses_path(@account.id, current_params)
+    ensure
+      redirect_to after_create_redirect_path
     end
 
     private
 
-    def form_status_batch_params
-      params.require(:form_status_batch).permit(:action, status_ids: [])
+    def admin_status_batch_action_params
+      params.require(:admin_status_batch_action).permit(status_ids: [])
+    end
+
+    def after_create_redirect_path
+      if params[:report_id]
+        admin_report_path(params[:report_id])
+      else
+        admin_account_statuses_path(params[:account_id], current_params)
+      end
     end
 
     def set_account
@@ -59,14 +63,15 @@ module Admin
       {
         media: params[:media],
         page: page > 1 && page,
+        report_id: params[:report_id],
       }.select { |_, value| value.present? }
     end
 
     def action_from_button
-      if params[:nsfw_on]
-        'nsfw_on'
-      elsif params[:nsfw_off]
-        'nsfw_off'
+      if params[:report]
+        'report'
+      elsif params[:remove_from_report]
+        'remove_from_report'
       elsif params[:delete]
         'delete'
       end

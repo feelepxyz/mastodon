@@ -231,8 +231,6 @@ Rails.application.routes.draw do
         post :reopen
         post :resolve
       end
-
-      resources :reported_statuses, only: [:create]
     end
 
     resources :report_notes, only: [:create, :destroy]
@@ -514,7 +512,7 @@ Rails.application.routes.draw do
           resource :action, only: [:create], controller: 'account_actions'
         end
 
-        resources :reports, only: [:index, :show] do
+        resources :reports, only: [:index, :update, :show] do
           member do
             post :assign_to_self
             post :unassign
